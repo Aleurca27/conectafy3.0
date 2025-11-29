@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Rebuild del código fuente solo cuando sea necesario
 FROM base AS builder
