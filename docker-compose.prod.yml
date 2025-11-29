@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Backend API - Producción
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: conectafy-backend-prod
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - BACKEND_URL=${BACKEND_URL}
+      - WAHA_BASE_PORT=${WAHA_BASE_PORT:-3010}
+      - WAHA_IMAGE=${WAHA_IMAGE:-devlikeapro/waha:latest}
+      - WAHA_MAX_SESSIONS=${WAHA_MAX_SESSIONS:-500}
+      - NETWORK_NAME=conectafy_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - conectafy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Frontend Next.js - Producción
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    container_name: conectafy-frontend-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    networks:
+      - conectafy_network
+    depends_on:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Nginx Reverse Proxy (opcional pero recomendado)
+  nginx:
+    image: nginx:alpine
+    container_name: conectafy-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro  # Para certificados SSL
+    networks:
+      - conectafy_network
+    depends_on:
+      - frontend
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  conectafy_network:
+    name: conectafy_network
+    driver: bridge
+
+# NOTAS DE PRODUCCIÓN:
+# 1. Configurar variables de entorno en archivo .env
+# 2. Configurar certificados SSL en nginx/ssl/
+# 3. Ajustar límites de recursos según el servidor
+# 4. Considerar usar Docker Swarm o Kubernetes para múltiples nodos
+# 5. Implementar monitoreo con Prometheus + Grafana
+# 6. Configurar backups automáticos de la base de datos
+

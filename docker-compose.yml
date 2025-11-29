@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: conectafy-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:3001}
+      - WAHA_BASE_PORT=${WAHA_BASE_PORT:-3010}
+      - WAHA_IMAGE=${WAHA_IMAGE:-devlikeapro/waha:latest}
+      - WAHA_MAX_SESSIONS=${WAHA_MAX_SESSIONS:-100}
+      - NETWORK_NAME=${NETWORK_NAME:-conectafy_network}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Acceso a Docker para crear contenedores WAHA
+      - ./backend/src:/app/src  # Hot reload en desarrollo
+    networks:
+      - conectafy_network
+    depends_on:
+      - waha-example
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: conectafy-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    volumes:
+      - ./frontend/app:/app/app  # Hot reload en desarrollo
+      - ./frontend/components:/app/components
+    networks:
+      - conectafy_network
+    depends_on:
+      - backend
+
+  # WAHA - Contenedor de ejemplo
+  # Los contenedores reales de WAHA se crean dinámicamente por el backend
+  waha-example:
+    image: devlikeapro/waha:latest
+    container_name: waha-example
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    environment:
+      - WHATSAPP_HOOK_URL=http://backend:3001/api/webhook/whatsapp/waha-example
+      - WHATSAPP_HOOK_EVENTS=message,session.status
+    networks:
+      - conectafy_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  conectafy_network:
+    name: conectafy_network
+    driver: bridge
+
+# NOTA: Los contenedores WAHA se crean dinámicamente cuando un usuario
+# crea una nueva sesión. Este docker-compose.yml solo incluye los servicios
+# principales (backend, frontend) y un WAHA de ejemplo.
+#
+# Para producción, usar docker-compose.prod.yml
+

@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #f5f5f5;
+}
+
+/* Estilos personalizados para el chat */
+.chat-container {
+  height: calc(100vh - 200px);
+}
+
+.messages-list {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #25D366 #f1f1f1;
+}
+
+.messages-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.messages-list::-webkit-scrollbar-thumb {
+  background: #25D366;
+  border-radius: 4px;
+}
+
+.messages-list::-webkit-scrollbar-thumb:hover {
+  background: #128C7E;
+}
+
+/* Mensaje enviado (derecha) */
+.message-sent {
+  background: #DCF8C6;
+  margin-left: auto;
+  border-radius: 8px 8px 0 8px;
+}
+
+/* Mensaje recibido (izquierda) */
+.message-received {
+  background: #FFFFFF;
+  margin-right: auto;
+  border-radius: 8px 8px 8px 0;
+}
+
+/* Animación de typing */
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+.typing-indicator span {
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
